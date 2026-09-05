@@ -106,8 +106,8 @@ final class TimerStore: ObservableObject {
 
     func duration(for phase: TimerPhase) -> Int {
         switch phase {
-        case .focus: settings.focusMinutes * 60
-        case .breakTime: settings.breakMinutes * 60
+        case .focus: return settings.focusMinutes * 60
+        case .breakTime: return settings.breakMinutes * 60
         }
     }
 
@@ -123,7 +123,7 @@ final class TimerStore: ObservableObject {
         endDate = Date().addingTimeInterval(TimeInterval(remainingSeconds))
         ticker?.invalidate()
         ticker = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.tick() }
+            Task { @MainActor [weak self] in self?.tick() }
         }
         ticker?.tolerance = 0.08
         if phase == .focus { onFocusStarted?() }

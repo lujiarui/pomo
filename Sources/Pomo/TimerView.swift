@@ -102,7 +102,7 @@ struct TimerView: View {
                     Image(systemName: "arrow.counterclockwise").frame(width: 42, height: 42)
                 }
                 .buttonStyle(.bordered)
-                .buttonBorderShape(.circle)
+                .buttonBorderShape(.roundedRectangle)
                 .help("Reset timer")
 
                 Button {
@@ -113,7 +113,7 @@ struct TimerView: View {
                         .frame(width: 130, height: 36)
                 }
                 .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
+                .buttonBorderShape(.roundedRectangle)
                 .tint(TimerPhase.focus.color)
 
                 Button {
@@ -122,7 +122,7 @@ struct TimerView: View {
                     Image(systemName: "cup.and.heat.waves").frame(width: 42, height: 42)
                 }
                 .buttonStyle(.bordered)
-                .buttonBorderShape(.circle)
+                .buttonBorderShape(.roundedRectangle)
                 .disabled(store.elapsedSeconds == 0)
                 .help("Stop work, save a checkpoint, and start your break")
             }
@@ -130,7 +130,7 @@ struct TimerView: View {
             VStack(spacing: 9) {
                 Button("Skip break") { store.skipBreak() }
                     .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
+                    .buttonBorderShape(.roundedRectangle)
                 Text("Skipping returns to a paused focus timer.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

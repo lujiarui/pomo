@@ -9,22 +9,22 @@ enum TimerPhase: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .focus: "Focus"
-        case .breakTime: "Break"
+        case .focus: return "Focus"
+        case .breakTime: return "Break"
         }
     }
 
     var compactTitle: String {
         switch self {
-        case .focus: "Focus"
-        case .breakTime: "Break"
+        case .focus: return "Focus"
+        case .breakTime: return "Break"
         }
     }
 
     var color: Color {
         switch self {
-        case .focus: Color(red: 0.93, green: 0.36, blue: 0.31)
-        case .breakTime: Color(red: 0.25, green: 0.66, blue: 0.54)
+        case .focus: return Color(red: 0.93, green: 0.36, blue: 0.31)
+        case .breakTime: return Color(red: 0.25, green: 0.66, blue: 0.54)
         }
     }
 }
@@ -88,19 +88,19 @@ enum AppPage: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .timer: "Timer"
-        case .checkpoints: "Checkpoints"
-        case .statistics: "Statistics"
-        case .settings: "Settings"
+        case .timer: return "Timer"
+        case .checkpoints: return "Checkpoints"
+        case .statistics: return "Statistics"
+        case .settings: return "Settings"
         }
     }
 
     var symbol: String {
         switch self {
-        case .timer: "timer"
-        case .checkpoints: "flag"
-        case .statistics: "chart.bar.xaxis"
-        case .settings: "gearshape"
+        case .timer: return "timer"
+        case .checkpoints: return "flag"
+        case .statistics: return "chart.bar.xaxis"
+        case .settings: return "gearshape"
         }
     }
 }

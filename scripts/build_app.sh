@@ -65,5 +65,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 PLIST
 
 chmod +x "$APP_DIR/Contents/MacOS/Pomo"
+# Finder metadata on generated bundles can prevent ad-hoc signing.
+/usr/bin/xattr -cr "$APP_DIR"
 /usr/bin/codesign --force --sign - "$APP_DIR" >/dev/null
 echo "Built $APP_DIR"

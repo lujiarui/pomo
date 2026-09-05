@@ -44,7 +44,7 @@ struct MenuBarView: View {
                             Image(systemName: "arrow.counterclockwise").frame(width: 32, height: 32)
                         }
                         .buttonStyle(.bordered)
-                        .buttonBorderShape(.circle)
+                        .buttonBorderShape(.roundedRectangle)
 
                         Button {
                             store.toggleTimer()
@@ -55,7 +55,7 @@ struct MenuBarView: View {
                                 .frame(height: 26)
                         }
                         .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
+                        .buttonBorderShape(.roundedRectangle)
                         .tint(TimerPhase.focus.color)
 
                         Button {
@@ -64,7 +64,7 @@ struct MenuBarView: View {
                             Image(systemName: "cup.and.heat.waves").frame(width: 32, height: 32)
                         }
                         .buttonStyle(.bordered)
-                        .buttonBorderShape(.circle)
+                        .buttonBorderShape(.roundedRectangle)
                         .disabled(store.elapsedSeconds == 0)
                         .help("Stop work and begin break")
                     }
@@ -75,7 +75,7 @@ struct MenuBarView: View {
                         .multilineTextAlignment(.center)
                     Button("Skip break") { store.skipBreak() }
                         .buttonStyle(.bordered)
-                        .buttonBorderShape(.capsule)
+                        .buttonBorderShape(.roundedRectangle)
                 }
             }
             .padding(16)
