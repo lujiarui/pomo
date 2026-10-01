@@ -7,8 +7,8 @@ struct PomoApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        WindowGroup(id: "main") {
-            RootView(store: appDelegate.store)
+        Window("Pomo", id: "main") {
+            MainWindowContent(store: appDelegate.store, controller: appDelegate.mainWindowController)
                 .frame(minWidth: 820, minHeight: 620)
         }
         .windowStyle(.hiddenTitleBar)
@@ -24,14 +24,24 @@ struct PomoApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let store = TimerStore()
+    let store: TimerStore
+    let mainWindowController = MainWindowController()
 
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
     private var breakWindowPanel: BreakWindowPanel?
     private var breakBuddyPanel: BreakBuddyPanel?
     private var cancellables = Set<AnyCancellable>()
-    private var shouldHideInitialWindow = true
+
+    override convenience init() {
+        self.init(store: TimerStore())
+    }
+
+    init(store: TimerStore) {
+        self.store = store
+        super.init()
+        configureTimerWindows()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -52,25 +62,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController = NSHostingController(
             rootView: MenuBarView(store: store, openMain: { [weak self] in self?.openMainWindow() })
         )
-
-        store.onBreakStarted = { [weak self] in
-            self?.showBreakWindow()
-        }
-        store.onBreakEnded = { [weak self] in
-            self?.hideBreakWindows()
-            self?.popover.behavior = .transient
-            self?.showPopover()
-        }
-        store.onFocusStarted = { [weak self] in
-            self?.hideBreakWindows()
-            self?.popover.behavior = .transient
-            if self?.store.breakNotesForNextFocus.isEmpty == true {
-                self?.popover.performClose(nil)
-            } else {
-                self?.showPopover()
-            }
-            self?.minimizeMainWindowForFocus()
-        }
 
         Publishers.CombineLatest3(store.$remainingSeconds, store.$phase, store.$isRunning)
             .sink { [weak self] remaining, phase, running in
@@ -104,15 +95,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.showBreakBuddy() }
             .store(in: &cancellables)
-        DispatchQueue.main.async { [weak self] in self?.hideInitialWindow() }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
 
-    func applicationDidBecomeActive(_ notification: Notification) {
-        hideInitialWindow()
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openMainWindow()
+        return false
+    }
+
+    private func configureTimerWindows() {
+        store.onBreakStarted = { [weak self] in self?.showBreakWindow() }
+        store.onBreakEnded = { [weak self] in
+            self?.hideBreakWindows()
+            self?.popover.behavior = .transient
+            self?.showPopover()
+        }
+        store.onFocusStarted = { [weak self] in
+            self?.hideBreakWindows()
+            self?.popover.behavior = .transient
+            if self?.store.breakNotesForNextFocus.isEmpty == true {
+                self?.popover.performClose(nil)
+            } else {
+                self?.showPopover()
+            }
+        }
     }
 
     @objc private func togglePopover() {
@@ -201,28 +210,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openMainWindow() {
-        shouldHideInitialWindow = false
         if store.phase != .breakTime && store.breakNotesForNextFocus.isEmpty { popover.performClose(nil) }
         NSApp.activate(ignoringOtherApps: true)
-        if let window = NSApp.windows.first(where: { $0.canBecomeKey && $0 !== popover.contentViewController?.view.window && $0 !== breakWindowPanel }) {
-            window.makeKeyAndOrderFront(nil)
-        }
+        mainWindowController.open()
+    }
+}
+
+private struct MainWindowContent: View {
+    @ObservedObject var store: TimerStore
+    let controller: MainWindowController
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        RootView(store: store)
+            .background(MainWindowRegistration(controller: controller, openScene: { openWindow(id: "main") }))
+    }
+}
+
+private struct MainWindowRegistration: NSViewRepresentable {
+    let controller: MainWindowController
+    let openScene: () -> Void
+
+    func makeNSView(context: Context) -> MainWindowProbe {
+        let view = MainWindowProbe()
+        view.onWindowAttached = { controller.register($0, openScene: openScene) }
+        return view
     }
 
-    private func hideInitialWindow() {
-        guard shouldHideInitialWindow else { return }
-        let mainWindows = NSApp.windows.filter { $0.canBecomeKey && $0 !== popover.contentViewController?.view.window && $0 !== breakWindowPanel }
-        guard !mainWindows.isEmpty else { return }
-        shouldHideInitialWindow = false
-        for window in mainWindows {
-            window.orderOut(nil)
-        }
+    func updateNSView(_ view: MainWindowProbe, context: Context) {
+        view.onWindowAttached = { controller.register($0, openScene: openScene) }
+        if let window = view.window { controller.register(window, openScene: openScene) }
     }
+}
 
-    private func minimizeMainWindowForFocus() {
-        for window in NSApp.windows where window.canBecomeKey && window !== popover.contentViewController?.view.window && window !== breakWindowPanel {
-            window.miniaturize(nil)
-        }
+private final class MainWindowProbe: NSView {
+    var onWindowAttached: ((NSWindow) -> Void)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if let window { onWindowAttached?(window) }
     }
 }
 

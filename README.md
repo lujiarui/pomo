@@ -37,6 +37,8 @@ swift run Pomo
 
 Session history and settings are stored in macOS `UserDefaults` for the current user. No account, network connection, or analytics are used.
 
+The main window appears at launch. Closing it keeps Pomo running in the menu bar; starting, pausing, or ending focus and breaks does not reopen or minimize the main window. Use **Open Pomo** in the timer panel, or click the Dock icon, to open it again.
+
 Use the type menu to add a custom type or edit its icon and color. Type names stay fixed when editing so existing history keeps its attribution.
 
 Choose a task and type before starting a focus block; they stay fixed until the next block or a reset. Existing history loads as Focus. Older records retain their original focused duration and show estimated timing because pause intervals were not recorded.
