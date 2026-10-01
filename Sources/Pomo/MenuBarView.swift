@@ -9,12 +9,21 @@ struct MenuBarView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 14) {
-                HStack {
-                    Label(store.phase.title, systemImage: store.phase == .focus ? "scope" : "cup.and.heat.waves")
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(store.phase.color)
+                HStack(spacing: 10) {
+                    if store.phase == .focus {
+                        BuddyAvatarView(buddy: store.settings.breakBuddy)
+                            .frame(width: 36, height: 36)
+                    }
+                    if store.phase == .focus {
+                        CategoryPicker(store: store)
+                    } else {
+                        Label("Break", systemImage: "cup.and.heat.waves")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(TimerPhase.breakTime.color)
+                    }
                     Spacer()
                     Text(statusLabel)
+                        .fixedSize()
                         .font(.system(size: 9, weight: .bold, design: .rounded))
                         .tracking(1.1)
                         .foregroundStyle(.secondary)
@@ -26,7 +35,7 @@ struct MenuBarView: View {
                         .monospacedDigit()
                         .contentTransition(.numericText())
                     ProgressView(value: store.progress)
-                        .tint(store.phase.color)
+                        .tint(store.currentTint)
                 }
 
                 if store.phase == .focus {
@@ -36,6 +45,7 @@ struct MenuBarView: View {
                         .padding(.horizontal, 12)
                         .frame(height: 36)
                         .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 10))
+                        .disabled(!store.canEditTask)
 
                     HStack(spacing: 9) {
                         Button {
@@ -54,9 +64,7 @@ struct MenuBarView: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 26)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.roundedRectangle)
-                        .tint(TimerPhase.focus.color)
+                        .buttonStyle(FocusActionButtonStyle(tint: store.currentTint))
 
                         Button {
                             store.finishEarly()

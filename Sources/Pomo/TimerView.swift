@@ -7,8 +7,17 @@ struct TimerView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                cycleHint
+                HStack(spacing: 12) {
+                    if store.phase == .focus {
+                        BuddyAvatarView(buddy: store.settings.breakBuddy)
+                            .frame(width: 40, height: 40)
+                    }
+                    cycleHint
+                }
                 timerRing
+                if store.phase == .breakTime {
+                    BreakBuddyCard(store: store)
+                }
                 taskArea
                 controls
                 checkpointComposer
@@ -27,8 +36,17 @@ struct TimerView: View {
 
     private var cycleHint: some View {
         HStack(spacing: 11) {
-            Label("Focus \(store.settings.focusMinutes)m", systemImage: "scope")
-                .foregroundStyle(TimerPhase.focus.color)
+            if store.phase == .focus {
+                CategoryPicker(store: store)
+            } else {
+                HStack(spacing: 6) {
+                    FocusTypeIcon(name: store.category, appearance: store.categoryAppearance(store.category))
+                    Text(store.category).lineLimit(1)
+                }
+                .foregroundStyle(store.categoryColor(store.category))
+            }
+            Text("\(store.settings.focusMinutes)m")
+                .foregroundStyle(store.categoryColor(store.category))
             Image(systemName: "arrow.right").font(.caption).foregroundStyle(.tertiary)
             Label("Break \(store.settings.breakMinutes)m", systemImage: "cup.and.heat.waves")
                 .foregroundStyle(TimerPhase.breakTime.color)
@@ -42,17 +60,20 @@ struct TimerView: View {
     private var timerRing: some View {
         ZStack {
             Circle()
-                .stroke(store.phase.color.opacity(0.12), lineWidth: 10)
+                .stroke(store.currentTint.opacity(0.12), lineWidth: 10)
             Circle()
                 .trim(from: 0, to: store.progress)
-                .stroke(store.phase.color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .stroke(store.currentTint, style: StrokeStyle(lineWidth: 10, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.2), value: store.progress)
             VStack(spacing: 8) {
-                Text(store.phase.title.uppercased())
+                Text((store.phase == .focus ? store.category : "Break").uppercased())
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 220)
                     .font(.caption.weight(.semibold))
                     .tracking(1.6)
-                    .foregroundStyle(store.phase.color)
+                    .foregroundStyle(store.currentTint)
                 Text(store.remainingSeconds.clockString)
                     .font(.system(size: 63, weight: .medium, design: .rounded))
                     .monospacedDigit()
@@ -76,15 +97,18 @@ struct TimerView: View {
     @ViewBuilder
     private var taskArea: some View {
         if store.phase == .focus {
-            HStack(spacing: 10) {
-                Image(systemName: "scope").foregroundStyle(TimerPhase.focus.color)
-                TextField("What are you focusing on?", text: $store.task)
-                    .textFieldStyle(.plain)
-                    .font(.body.weight(.medium))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    FocusTypeIcon(name: store.category, appearance: store.categoryAppearance(store.category))
+                    TextField("What are you focusing on?", text: $store.task)
+                        .textFieldStyle(.plain)
+                        .font(.body.weight(.medium))
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 46)
+                .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .disabled(!store.canEditTask)
             }
-            .padding(.horizontal, 16)
-            .frame(height: 46)
-            .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         } else {
             Label("Your work block is saved. Leave the screen for a moment.", systemImage: "checkmark.circle")
                 .font(.callout)
@@ -112,9 +136,7 @@ struct TimerView: View {
                         .font(.body.weight(.semibold))
                         .frame(width: 130, height: 36)
                 }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.roundedRectangle)
-                .tint(TimerPhase.focus.color)
+                .buttonStyle(FocusActionButtonStyle(tint: store.currentTint))
 
                 Button {
                     store.finishEarly()
@@ -198,7 +220,7 @@ struct TimerView: View {
                     .foregroundStyle(.secondary)
             }
             ProgressView(value: min(1, Double(store.focusedSecondsToday) / Double(goal)))
-                .tint(store.phase.color)
+                .tint(store.currentTint)
         }
     }
 }

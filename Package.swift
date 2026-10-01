@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
@@ -11,6 +11,7 @@ let package = Package(
         .executableTarget(
             name: "Pomo",
             path: "Sources/Pomo"
-        )
+        ),
+        .testTarget(name: "PomoTests", dependencies: ["Pomo"])
     ]
 )

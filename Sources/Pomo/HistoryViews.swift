@@ -18,7 +18,7 @@ struct CheckpointsView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 18) {
                         if !store.currentCheckpoints.isEmpty {
-                            checkpointGroup(title: "Current session", date: Date(), checkpoints: store.currentCheckpoints, tint: store.phase.color)
+                            checkpointGroup(title: "Current session", date: Date(), checkpoints: store.currentCheckpoints, tint: store.currentTint)
                         }
                         ForEach(sessionsWithCheckpoints) { session in
                             checkpointGroup(
@@ -83,6 +83,8 @@ struct StatisticsView: View {
                     MetricCard(title: "Streak", value: "\(store.currentStreak)", detail: store.currentStreak == 1 ? "day" : "days", symbol: "flame", tint: .red)
                 }
 
+                DailyAllocationView(store: store)
+
                 Card {
                     VStack(alignment: .leading, spacing: 18) {
                         VStack(alignment: .leading, spacing: 3) {
@@ -130,6 +132,9 @@ struct StatisticsView: View {
                                             .font(.callout.weight(.medium))
                                         Text(session.endedAt, format: .dateTime.month(.abbreviated).day().hour().minute())
                                             .font(.caption).foregroundStyle(.secondary)
+                                        Label(session.category, systemImage: "circle.fill")
+                                            .font(.caption2)
+                                            .foregroundStyle(store.categoryColor(session.category))
                                     }
                                     Spacer()
                                     if !session.checkpoints.isEmpty {
@@ -173,6 +178,36 @@ struct SettingsView: View {
                     Divider()
                     Toggle(isOn: $store.settings.playSound) {
                         settingsLabel("Completion sound", detail: "Play a system sound when time is up")
+                    }
+                }
+
+                settingsCard("Break buddy", symbol: "sparkles") {
+                    Text("A little pixel companion keeps you company during breaks. Tips rotate every 12 seconds.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    BreakBuddyPicker(selection: $store.settings.breakBuddy)
+                    HStack(spacing: 16) {
+                        PixelBuddyView(buddy: store.settings.breakBuddy)
+                            .frame(width: store.settings.breakBuddySize, height: store.settings.breakBuddySize)
+                            .frame(width: 192, height: 192)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(store.settings.breakBuddy.name).font(.headline)
+                            Text(store.settings.breakBuddy.description).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    HStack {
+                        Text("Size").font(.callout)
+                        Spacer()
+                        Text((store.settings.breakBuddySize / 128).formatted(.percent.precision(.fractionLength(0...1))))
+                            .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        Button("Reset size") { store.settings.breakBuddySize = 128 }
+                            .disabled(store.settings.breakBuddySize == 128)
+                    }
+                    HStack(spacing: 12) {
+                        Text("Small").font(.caption).foregroundStyle(.secondary)
+                        Slider(value: $store.settings.breakBuddySize, in: PomoSettings.breakBuddySizeRange, step: 16)
+                            .accessibilityLabel("Break buddy size")
+                        Text("Large").font(.caption).foregroundStyle(.secondary)
                     }
                 }
 

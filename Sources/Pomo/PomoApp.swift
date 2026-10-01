@@ -28,6 +28,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
+    private var breakWindowPanel: BreakWindowPanel?
+    private var breakBuddyPanel: BreakBuddyPanel?
     private var cancellables = Set<AnyCancellable>()
     private var shouldHideInitialWindow = true
 
@@ -52,14 +54,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         store.onBreakStarted = { [weak self] in
-            self?.popover.behavior = .applicationDefined
-            self?.showPopover()
+            self?.showBreakWindow()
         }
         store.onBreakEnded = { [weak self] in
+            self?.hideBreakWindows()
             self?.popover.behavior = .transient
             self?.showPopover()
         }
         store.onFocusStarted = { [weak self] in
+            self?.hideBreakWindows()
             self?.popover.behavior = .transient
             if self?.store.breakNotesForNextFocus.isEmpty == true {
                 self?.popover.performClose(nil)
@@ -75,6 +78,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
         updateStatusItem(remaining: store.remainingSeconds, phase: store.phase, running: store.isRunning)
+        for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification, NSWindow.didChangeScreenNotification] {
+            NotificationCenter.default.publisher(for: name)
+                .sink { [weak self] notification in
+                    guard let self, let window = notification.object as? NSWindow,
+                          window === self.breakWindowPanel else { return }
+                    self.showBreakBuddy()
+                }
+                .store(in: &cancellables)
+        }
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .sink { [weak self] _ in
+                guard self?.store.phase == .breakTime else { return }
+                self?.showBreakWindow(makeKey: false)
+            }
+            .store(in: &cancellables)
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard self?.store.phase == .breakTime else { return }
+                self?.showBreakWindow(makeKey: false, reposition: false)
+            }
+            .store(in: &cancellables)
+        store.$settings.dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.showBreakBuddy() }
+            .store(in: &cancellables)
         DispatchQueue.main.async { [weak self] in self?.hideInitialWindow() }
     }
 
@@ -87,8 +116,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func togglePopover() {
+        if store.phase == .breakTime {
+            showBreakWindow()
+            return
+        }
         if popover.isShown {
-            if store.phase == .breakTime { return }
             popover.performClose(nil)
         } else {
             showPopover()
@@ -96,10 +128,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showPopover() {
+        guard store.phase == .focus else {
+            showBreakWindow()
+            return
+        }
         guard let button = statusItem?.button else { return }
-        popover.behavior = store.phase == .breakTime ? .applicationDefined : .transient
+        popover.behavior = .transient
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
+    }
+
+    private func showBreakWindow(makeKey: Bool = true, reposition: Bool = true) {
+        guard store.phase == .breakTime,
+              let button = statusItem?.button, let statusWindow = button.window,
+              let screen = statusWindow.screen ?? NSScreen.main else { return }
+        popover.performClose(nil)
+        let isNewWindow = breakWindowPanel == nil
+        if isNewWindow {
+            breakWindowPanel = BreakWindowPanel(store: store, openMain: { [weak self] in self?.openMainWindow() })
+        }
+        guard let panel = breakWindowPanel else { return }
+        if reposition || isNewWindow {
+            let anchor = statusWindow.convertToScreen(button.convert(button.bounds, to: nil))
+            let visible = screen.visibleFrame
+            let height = min(visible.height, max(320, panel.contentView?.fittingSize.height ?? 400))
+            let frame = CGRect(
+                x: min(max(anchor.maxX - 322, visible.minX), visible.maxX - 322),
+                y: min(max(anchor.minY - height - 8, visible.minY), visible.maxY - height),
+                width: 322, height: height
+            )
+            panel.setFrame(frame, display: true)
+        }
+        panel.orderFrontRegardless()
+        if makeKey { panel.makeKey() }
+        showBreakBuddy()
+    }
+
+    private func showBreakBuddy() {
+        guard store.phase == .breakTime,
+              let window = breakWindowPanel, window.isVisible,
+              let screen = window.screen else {
+            hideBreakBuddy()
+            return
+        }
+        if breakBuddyPanel == nil { breakBuddyPanel = BreakBuddyPanel(store: store) }
+        breakBuddyPanel?.setFrame(BreakBuddyPlacement.frame(nextTo: window.frame, visibleFrame: screen.visibleFrame,
+                                                           buddySize: store.settings.breakBuddySize), display: true)
+        breakBuddyPanel?.orderFrontRegardless()
+    }
+
+    private func hideBreakBuddy() {
+        // Remove the hosting view while hidden so its animation schedule stops between breaks.
+        breakBuddyPanel?.contentView = nil
+        breakBuddyPanel?.close()
+        breakBuddyPanel = nil
+    }
+
+    private func hideBreakWindows() {
+        hideBreakBuddy()
+        breakWindowPanel?.contentView = nil
+        breakWindowPanel?.close()
+        breakWindowPanel = nil
     }
 
     private func updateStatusItem(remaining: Int, phase: TimerPhase, running: Bool) {
@@ -115,14 +204,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shouldHideInitialWindow = false
         if store.phase != .breakTime && store.breakNotesForNextFocus.isEmpty { popover.performClose(nil) }
         NSApp.activate(ignoringOtherApps: true)
-        if let window = NSApp.windows.first(where: { $0.canBecomeKey && $0 !== popover.contentViewController?.view.window }) {
+        if let window = NSApp.windows.first(where: { $0.canBecomeKey && $0 !== popover.contentViewController?.view.window && $0 !== breakWindowPanel }) {
             window.makeKeyAndOrderFront(nil)
         }
     }
 
     private func hideInitialWindow() {
         guard shouldHideInitialWindow else { return }
-        let mainWindows = NSApp.windows.filter { $0.canBecomeKey && $0 !== popover.contentViewController?.view.window }
+        let mainWindows = NSApp.windows.filter { $0.canBecomeKey && $0 !== popover.contentViewController?.view.window && $0 !== breakWindowPanel }
         guard !mainWindows.isEmpty else { return }
         shouldHideInitialWindow = false
         for window in mainWindows {
@@ -131,7 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func minimizeMainWindowForFocus() {
-        for window in NSApp.windows where window.canBecomeKey && window !== popover.contentViewController?.view.window {
+        for window in NSApp.windows where window.canBecomeKey && window !== popover.contentViewController?.view.window && window !== breakWindowPanel {
             window.miniaturize(nil)
         }
     }
@@ -189,9 +278,10 @@ struct RootView: View {
             case .timer: TimerView(store: store)
             case .checkpoints: CheckpointsView(store: store)
             case .statistics: StatisticsView(store: store)
+            case .timeline: DailyTimelineView(store: store)
             case .settings: SettingsView(store: store)
             }
         }
-        .tint(store.phase.color)
+        .tint(store.currentTint)
     }
 }
