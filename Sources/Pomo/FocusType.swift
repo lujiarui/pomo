@@ -14,14 +14,14 @@ enum FocusTypeColor: String, Codable, CaseIterable, Identifiable {
 
     var components: (red: Double, green: Double, blue: Double) {
         switch self {
-        case .coral: (0.93, 0.36, 0.31)
-        case .blue: (0.20, 0.46, 0.90)
-        case .purple: (0.64, 0.30, 0.88)
-        case .orange: (0.91, 0.48, 0.15)
-        case .pink: (0.88, 0.28, 0.53)
-        case .indigo: (0.39, 0.36, 0.82)
-        case .sky: (0.16, 0.53, 0.80)
-        case .plum: (0.66, 0.28, 0.63)
+        case .coral: return (0.93, 0.36, 0.31)
+        case .blue: return (0.20, 0.46, 0.90)
+        case .purple: return (0.64, 0.30, 0.88)
+        case .orange: return (0.91, 0.48, 0.15)
+        case .pink: return (0.88, 0.28, 0.53)
+        case .indigo: return (0.39, 0.36, 0.82)
+        case .sky: return (0.16, 0.53, 0.80)
+        case .plum: return (0.66, 0.28, 0.63)
         }
     }
 }
@@ -47,12 +47,12 @@ struct FocusTypeAppearance: Codable, Equatable {
 
     static func symbol(for name: String) -> String {
         switch name {
-        case "Focus": "scope"
-        case "Work": "briefcase.fill"
-        case "Study": "book.closed.fill"
-        case "Creative": "paintbrush.pointed.fill"
-        case "Personal": "person.fill"
-        default: "tag.fill"
+        case "Focus": return "scope"
+        case "Work": return "briefcase.fill"
+        case "Study": return "book.closed.fill"
+        case "Creative": return "paintbrush.pointed.fill"
+        case "Personal": return "person.fill"
+        default: return "tag.fill"
         }
     }
 

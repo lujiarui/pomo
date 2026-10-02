@@ -72,7 +72,11 @@ final class TimerStore: ObservableObject {
         isLoading = false
     }
 
+    #if compiler(>=6.2)
     isolated deinit { ticker?.invalidate() }
+    #else
+    deinit { ticker?.invalidate() }
+    #endif
 
     var plannedSeconds: Int { duration(for: phase) }
 

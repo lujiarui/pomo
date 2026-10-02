@@ -6,41 +6,41 @@ enum BreakBuddy: String, Codable, CaseIterable, Identifiable {
 
     var name: String {
         switch self {
-        case .mochi: "Mochi"
-        case .bun: "Bun"
-        case .sprout: "Sprout"
-        case .byte: "Byte"
-        case .pip: "Pip"
+        case .mochi: return "Mochi"
+        case .bun: return "Bun"
+        case .sprout: return "Sprout"
+        case .byte: return "Byte"
+        case .pip: return "Pip"
         }
     }
 
     var description: String {
         switch self {
-        case .mochi: "A sleepy little cat"
-        case .bun: "A soft, bouncy bunny"
-        case .sprout: "A cheerful little seedling"
-        case .byte: "A friendly pocket robot"
-        case .pip: "A tiny mouse with rosy ears"
+        case .mochi: return "A sleepy little cat"
+        case .bun: return "A soft, bouncy bunny"
+        case .sprout: return "A cheerful little seedling"
+        case .byte: return "A friendly pocket robot"
+        case .pip: return "A tiny mouse with rosy ears"
         }
     }
 
     var tint: Color {
         switch self {
-        case .mochi: Color(red: 0.88, green: 0.60, blue: 0.32)
-        case .bun: Color(red: 0.84, green: 0.49, blue: 0.65)
-        case .sprout: Color(red: 0.30, green: 0.66, blue: 0.45)
-        case .byte: Color(red: 0.39, green: 0.57, blue: 0.84)
-        case .pip: Color(red: 0.62, green: 0.54, blue: 0.77)
+        case .mochi: return Color(red: 0.88, green: 0.60, blue: 0.32)
+        case .bun: return Color(red: 0.84, green: 0.49, blue: 0.65)
+        case .sprout: return Color(red: 0.30, green: 0.66, blue: 0.45)
+        case .byte: return Color(red: 0.39, green: 0.57, blue: 0.84)
+        case .pip: return Color(red: 0.62, green: 0.54, blue: 0.77)
         }
     }
 
     fileprivate var bodyColor: Color {
         switch self {
-        case .mochi: Color(red: 1, green: 0.82, blue: 0.56)
-        case .bun: Color(red: 1, green: 0.91, blue: 0.93)
-        case .sprout: Color(red: 0.52, green: 0.82, blue: 0.48)
-        case .byte: Color(red: 0.63, green: 0.79, blue: 0.97)
-        case .pip: Color(red: 0.78, green: 0.77, blue: 0.87)
+        case .mochi: return Color(red: 1, green: 0.82, blue: 0.56)
+        case .bun: return Color(red: 1, green: 0.91, blue: 0.93)
+        case .sprout: return Color(red: 0.52, green: 0.82, blue: 0.48)
+        case .byte: return Color(red: 0.63, green: 0.79, blue: 0.97)
+        case .pip: return Color(red: 0.78, green: 0.77, blue: 0.87)
         }
     }
 
@@ -51,7 +51,7 @@ enum BreakBuddy: String, Codable, CaseIterable, Identifiable {
     /// Hand-drawn pixel sprites. Dots are transparent; e marks the animated eyes.
     fileprivate var sprite: [String] {
         switch self {
-        case .mochi: [
+        case .mochi: return [
             "....................",
             "....##......##......",
             "...#bb#....#bb#.....",
@@ -77,7 +77,7 @@ enum BreakBuddy: String, Codable, CaseIterable, Identifiable {
             "....................",
             "...................."
         ]
-        case .bun: [
+        case .bun: return [
             "....##.....##.......",
             "...#ll#...#ll#......",
             "...#lp#...#pl#......",
@@ -103,7 +103,7 @@ enum BreakBuddy: String, Codable, CaseIterable, Identifiable {
             "....................",
             "...................."
         ]
-        case .sprout: [
+        case .sprout: return [
             "....................",
             "...####....####.....",
             "..#bbbb#..#bbbb#....",
@@ -129,7 +129,7 @@ enum BreakBuddy: String, Codable, CaseIterable, Identifiable {
             "....................",
             "...................."
         ]
-        case .byte: [
+        case .byte: return [
             ".........aa.........",
             ".........aa.........",
             ".........##.........",
@@ -155,7 +155,7 @@ enum BreakBuddy: String, Codable, CaseIterable, Identifiable {
             "......##..##........",
             "...................."
         ]
-        case .pip: [
+        case .pip: return [
             "....................",
             "..####......####....",
             ".#bbbb#....#bbbb#...",
@@ -315,10 +315,11 @@ struct PixelBuddyView: View {
         let bounce = [0, 0, -1, -1, 0, 0, 1, 0][frame % 8]
         let blink = frame == 18 || frame == 19
         let outline = Color(red: 0.24, green: 0.23, blue: 0.30)
-        let light: Color = switch buddy {
-        case .bun: buddy.bodyColor
-        case .pip: Color(red: 0.95, green: 0.94, blue: 0.99)
-        default: Color(red: 1, green: 0.96, blue: 0.85)
+        let light: Color
+        switch buddy {
+        case .bun: light = buddy.bodyColor
+        case .pip: light = Color(red: 0.95, green: 0.94, blue: 0.99)
+        default: light = Color(red: 1, green: 0.96, blue: 0.85)
         }
         let palette: [Character: Color] = [
             "#": outline, "b": buddy.bodyColor, "l": light, "a": buddy.accentColor,
@@ -336,11 +337,12 @@ struct PixelBuddyView: View {
                 if pixel == "e", blink {
                     // Keep one row for a closed-eye smile; the other blends into the face.
                     let previousIsEye = row > 0 && Array(buddy.sprite[row - 1])[column] == "e"
-                    let background: Color = switch buddy {
-                    case .byte: outline
-                    case .mochi, .pip: buddy.bodyColor
-                    case .bun: light
-                    case .sprout: buddy.accentColor
+                    let background: Color
+                    switch buddy {
+                    case .byte: background = outline
+                    case .mochi, .pip: background = buddy.bodyColor
+                    case .bun: background = light
+                    case .sprout: background = buddy.accentColor
                     }
                     context.fill(rect(column + 6, row + 3 + bounce, 1, 1), with: .color(previousIsEye ? color : background), style: FillStyle(antialiased: false))
                 } else {

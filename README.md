@@ -4,14 +4,14 @@ A minimalist, native Pomodoro timer for macOS. Pomo keeps its data local and hel
 
 ## Run
 
-Pomo requires macOS 14 or later and Apple Command Line Tools with Swift 6.2 or later. Build a normal macOS app bundle with:
+Pomo requires macOS 14 or later. The app bundle can be built with Apple Command Line Tools with Swift 5.8 or later and the macOS 13 SDK or later:
 
 ```sh
 ./scripts/build_app.sh
 open build/Pomo.app
 ```
 
-For development, you can also run the Swift package directly:
+For development with Swift 6.2 or later, you can also run the Swift package directly:
 
 ```sh
 swift run Pomo

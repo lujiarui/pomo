@@ -12,11 +12,13 @@ CLANG_MODULE_CACHE_PATH="$CACHE_DIR" /usr/bin/xcrun swiftc \
   -O \
   -parse-as-library \
   -target arm64-apple-macosx14.0 \
+  -module-cache-path "$CACHE_DIR" \
   "$PROJECT_DIR"/Sources/Pomo/*.swift \
   -o "$APP_DIR/Contents/MacOS/Pomo"
 
 CLANG_MODULE_CACHE_PATH="$CACHE_DIR" /usr/bin/xcrun swiftc \
   -target arm64-apple-macosx14.0 \
+  -module-cache-path "$CACHE_DIR" \
   "$PROJECT_DIR/scripts/generate_tomato_icon.swift" \
   -o "$PROJECT_DIR/.build/generate-tomato-icon"
 "$PROJECT_DIR/.build/generate-tomato-icon" "$PROJECT_DIR/Assets/AppIcon-1024.png"
@@ -68,4 +70,6 @@ chmod +x "$APP_DIR/Contents/MacOS/Pomo"
 # Finder metadata on generated bundles can prevent ad-hoc signing.
 /usr/bin/xattr -cr "$APP_DIR"
 /usr/bin/codesign --force --sign - "$APP_DIR" >/dev/null
+/usr/bin/xattr -cr "$APP_DIR"
+/usr/bin/codesign --verify --deep --strict "$APP_DIR"
 echo "Built $APP_DIR"

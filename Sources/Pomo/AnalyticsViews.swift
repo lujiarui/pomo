@@ -59,14 +59,16 @@ struct DailyAllocationView: View {
     @ViewBuilder
     private var allocationChart: some View {
         if chartStyle == .pie {
-            Chart(allocations) { item in
-                SectorMark(angle: .value("Seconds", item.seconds), innerRadius: .ratio(0.67), angularInset: 2)
-                    .cornerRadius(4)
-                    .foregroundStyle(color(item.name))
-                    .accessibilityLabel(item.name)
-                    .accessibilityValue("\(item.seconds.compactDuration), \(percentage(item.seconds))")
+            ZStack {
+                ForEach(Array(allocations.enumerated()), id: \.element.id) { index, item in
+                    let start = Double(allocations.prefix(index).reduce(0) { $0 + $1.seconds }) / Double(max(1, total))
+                    let end = start + Double(item.seconds) / Double(max(1, total))
+                    AllocationSector(start: start, end: end)
+                        .fill(color(item.name))
+                        .accessibilityLabel(item.name)
+                        .accessibilityValue("\(item.seconds.compactDuration), \(percentage(item.seconds))")
+                }
             }
-            .chartLegend(.hidden)
             .frame(height: 230)
             .overlay {
                 VStack(spacing: 5) {
@@ -190,7 +192,7 @@ struct DailyTimelineView: View {
                     .accessibilityLabel("\(activity.task), \(activity.category)")
                     .accessibilityValue("\(activity.startedAt.formatted(date: .omitted, time: .shortened)) to \(activity.endedAt.formatted(date: .omitted, time: .shortened)), \(activity.seconds.compactDuration)")
                 }
-                .chartForegroundStyleScale(domain: categories, range: categories.map(store.categoryColor))
+                .chartForegroundStyleScale(domain: categories, range: categories.map { store.categoryColor($0) })
                 .chartXScale(domain: day.start...day.end)
                 .chartYScale(domain: tasks)
                 .chartXAxis {
@@ -286,5 +288,25 @@ struct DayPicker: View {
 
     private func move(_ days: Int) {
         if let next = Calendar.current.date(byAdding: .day, value: days, to: date) { date = min(next, Date()) }
+    }
+}
+
+// Draw directly with SwiftUI so the donut also builds with the macOS 13 SDK.
+private struct AllocationSector: Shape {
+    let start: Double
+    let end: Double
+
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let outerRadius = min(rect.width, rect.height) / 2
+        let innerRadius = outerRadius * 0.67
+        let gap = end - start >= 1 ? 0 : min(2 / max(1, Double(innerRadius)), (end - start) * Double.pi / 2)
+        let startAngle = Angle.radians(start * 2 * .pi - .pi / 2 + gap / 2)
+        let endAngle = Angle.radians(end * 2 * .pi - .pi / 2 - gap / 2)
+        var path = Path()
+        path.addArc(center: center, radius: outerRadius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
+        path.addArc(center: center, radius: innerRadius, startAngle: endAngle, endAngle: startAngle, clockwise: true)
+        path.closeSubpath()
+        return path
     }
 }
